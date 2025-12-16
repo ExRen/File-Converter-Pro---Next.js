@@ -185,6 +185,8 @@ export default function ToolsPage() {
     { id: 'ascii', name: 'ASCII', icon: 'fa-text-width', color: '#ffc107' },
     { id: 'uuid', name: 'UUID', icon: 'fa-id-badge', color: '#e040fb' },
     { id: 'cron', name: 'Cron', icon: 'fa-calendar-alt', color: '#00e676' },
+    { id: 'htmlent', name: 'HTML', icon: 'fa-code', color: '#ff6e40' },
+    { id: 'slug', name: 'Slug', icon: 'fa-link', color: '#64ffda' },
   ];
 
   // Base64 states
@@ -799,6 +801,42 @@ export default function ToolsPage() {
 
     setCronResult(description);
     showToast('Parsed!');
+  };
+
+  // HTML Entity states
+  const [htmlInput, setHtmlInput] = useState('<div class="test">Hello & "World"</div>');
+  const [htmlOutput, setHtmlOutput] = useState('');
+  const [htmlMode, setHtmlMode] = useState('encode');
+
+  const processHtmlEntity = () => {
+    if (htmlMode === 'encode') {
+      const div = document.createElement('div');
+      div.textContent = htmlInput;
+      setHtmlOutput(div.innerHTML);
+    } else {
+      const div = document.createElement('div');
+      div.innerHTML = htmlInput;
+      setHtmlOutput(div.textContent || '');
+    }
+    showToast(`HTML entities ${htmlMode}d!`);
+  };
+
+  // Slug Generator states
+  const [slugInput, setSlugInput] = useState('Hello World! This is a Test Title #123');
+  const [slugOutput, setSlugOutput] = useState('');
+  const [slugSeparator, setSlugSeparator] = useState('-');
+
+  const generateSlug = () => {
+    const slug = slugInput
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, slugSeparator)
+      .replace(new RegExp(`${slugSeparator}+`, 'g'), slugSeparator)
+      .replace(new RegExp(`^${slugSeparator}|${slugSeparator}$`, 'g'), '');
+    setSlugOutput(slug);
+    showToast('Slug generated!');
   };
 
   return (
@@ -1731,6 +1769,72 @@ export default function ToolsPage() {
                   ))}
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* HTML Entity Encoder */}
+        {activeTab === 'htmlent' && (
+          <div className="tool-panel">
+            <div className="mode-toggle" style={{ marginBottom: '20px' }}>
+              <button className={`option-btn ${htmlMode === 'encode' ? 'active' : ''}`}
+                onClick={() => setHtmlMode('encode')}>Encode</button>
+              <button className={`option-btn ${htmlMode === 'decode' ? 'active' : ''}`}
+                onClick={() => setHtmlMode('decode')}>Decode</button>
+            </div>
+            <div className="json-grid">
+              <div className="json-input">
+                <h4>{htmlMode === 'encode' ? 'HTML/Text' : 'Encoded Text'}</h4>
+                <textarea value={htmlInput} onChange={(e) => setHtmlInput(e.target.value)}
+                  placeholder={htmlMode === 'encode' ? 'Enter HTML/text...' : 'Enter encoded text...'} />
+                <button className="action-btn primary" onClick={processHtmlEntity}>
+                  <i className={`fas ${htmlMode === 'encode' ? 'fa-code' : 'fa-file-code'}`}></i>
+                  {htmlMode === 'encode' ? 'Encode' : 'Decode'}
+                </button>
+              </div>
+              <div className="json-output">
+                <h4>{htmlMode === 'encode' ? 'Encoded' : 'Decoded'}</h4>
+                <textarea value={htmlOutput} readOnly />
+                <button className="action-btn" onClick={() => { navigator.clipboard.writeText(htmlOutput); showToast('Copied!'); }}>
+                  <i className="fas fa-copy"></i> Copy
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Slug Generator */}
+        {activeTab === 'slug' && (
+          <div className="tool-panel">
+            <div className="slug-layout">
+              <div className="input-group">
+                <label>Title / Text</label>
+                <input type="text" value={slugInput} onChange={(e) => setSlugInput(e.target.value)}
+                  placeholder="Enter title or text to slugify..." />
+              </div>
+              <div className="input-row">
+                <div className="input-group">
+                  <label>Separator</label>
+                  <div className="button-group">
+                    <button className={`option-btn ${slugSeparator === '-' ? 'active' : ''}`}
+                      onClick={() => setSlugSeparator('-')}>Hyphen (-)</button>
+                    <button className={`option-btn ${slugSeparator === '_' ? 'active' : ''}`}
+                      onClick={() => setSlugSeparator('_')}>Underscore (_)</button>
+                  </div>
+                </div>
+              </div>
+              <button className="action-btn primary full" onClick={generateSlug}>
+                <i className="fas fa-link"></i> Generate Slug
+              </button>
+              
+              {slugOutput && (
+                <div className="slug-result">
+                  <span className="slug-value">{slugOutput}</span>
+                  <button onClick={() => { navigator.clipboard.writeText(slugOutput); showToast('Slug copied!'); }}>
+                    <i className="fas fa-copy"></i>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -2794,6 +2898,40 @@ export default function ToolsPage() {
           .example-grid {
             grid-template-columns: 1fr;
           }
+        }
+
+        /* Slug Generator */
+        .slug-result {
+          background: linear-gradient(135deg, rgba(100,255,218,0.2), rgba(99,102,241,0.2));
+          border: 1px solid var(--primary);
+          border-radius: 12px;
+          padding: 15px 20px;
+          margin-top: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 15px;
+        }
+
+        .slug-value {
+          font-family: 'Fira Code', monospace;
+          font-size: 16px;
+          word-break: break-all;
+          color: var(--primary-light);
+        }
+
+        .slug-result button {
+          background: var(--glass-bg);
+          border: 1px solid var(--glass-border);
+          color: var(--text);
+          padding: 10px 15px;
+          border-radius: 8px;
+          cursor: pointer;
+        }
+
+        .slug-result button:hover {
+          background: var(--primary);
+          border-color: var(--primary);
         }
       `}</style>
     </>
