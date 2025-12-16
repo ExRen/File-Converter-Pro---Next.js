@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { parseFile, convertToFormat, SUPPORTED_FORMATS } from '@/lib/converter';
+import ThemeToggle from '@/components/ThemeToggle';
 
 export default function BatchConverterPage() {
   const [files, setFiles] = useState([]);
@@ -193,6 +194,7 @@ export default function BatchConverterPage() {
           <Link href="/batch-converter" className="active"><i className="fas fa-layer-group"></i> Batch</Link>
           <Link href="/tools"><i className="fas fa-tools"></i> Tools</Link>
         </nav>
+        <ThemeToggle />
       </header>
 
       <div className="container">

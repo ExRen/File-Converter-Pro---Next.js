@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
+import ThemeToggle from '@/components/ThemeToggle';
 import { 
   PDF_TOOLS, 
   mergePDFs, 
@@ -210,6 +211,7 @@ export default function PDFToolsPage() {
           <Link href="/batch-converter"><i className="fas fa-layer-group"></i> Batch</Link>
           <Link href="/tools"><i className="fas fa-tools"></i> Tools</Link>
         </nav>
+        <ThemeToggle />
       </header>
 
       <div className="container">

@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import QRCode from 'qrcode';
+import ThemeToggle from '@/components/ThemeToggle';
 
 export default function ToolsPage() {
   const [activeTab, setActiveTab] = useState('qrcode');
@@ -269,6 +270,7 @@ export default function ToolsPage() {
           <Link href="/batch-converter"><i className="fas fa-layer-group"></i> Batch</Link>
           <Link href="/tools" className="active"><i className="fas fa-tools"></i> Tools</Link>
         </nav>
+        <ThemeToggle />
       </header>
 
       <div className="container">

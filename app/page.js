@@ -3,6 +3,8 @@
 import { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { parseFile, convertToFormat, estimateMemory, SUPPORTED_FORMATS } from '@/lib/converter';
+import ThemeToggle from '@/components/ThemeToggle';
+import RecentFiles, { addToRecentFiles } from '@/components/RecentFiles';
 
 export default function Home() {
   const [uploadedData, setUploadedData] = useState(null);
@@ -84,6 +86,15 @@ export default function Home() {
       );
       
       setResult(result);
+      
+      // Add to recent files history
+      addToRecentFiles({
+        name: fileInfo.name,
+        fromFormat: fileInfo.format,
+        toFormat: selectedFormat,
+        type: selectedFormat
+      });
+      
       showToast('Konversi berhasil!', 'success');
     } catch (error) {
       console.error('Error converting:', error);
@@ -152,6 +163,7 @@ export default function Home() {
           <Link href="/batch-converter"><i className="fas fa-layer-group"></i> Batch</Link>
           <Link href="/tools"><i className="fas fa-tools"></i> Tools</Link>
         </nav>
+        <ThemeToggle />
       </header>
 
       <div className="container">
@@ -164,6 +176,9 @@ export default function Home() {
             ))}
           </div>
         </section>
+
+        {/* Recent Files */}
+        {!fileInfo && <RecentFiles />}
 
         {/* Upload Zone */}
         {!fileInfo && (
