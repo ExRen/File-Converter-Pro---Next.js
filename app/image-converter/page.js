@@ -35,12 +35,34 @@ const IMAGE_TOOLS = {
     color: '#9b59b6',
     category: 'modify'
   },
+  // EFFECTS
+  filters: {
+    name: 'Image Filters',
+    desc: 'Grayscale, Sepia, Blur, Brightness',
+    icon: 'fa-magic',
+    color: '#e91e63',
+    category: 'effects'
+  },
+  border: {
+    name: 'Add Border',
+    desc: 'Add frame/border to images',
+    icon: 'fa-border-style',
+    color: '#ff5722',
+    category: 'effects'
+  },
   // CONVERT
   convert: {
     name: 'Convert Format',
     desc: 'PNG, JPEG, WebP, GIF, BMP',
     icon: 'fa-exchange-alt',
     color: '#2ecc71',
+    category: 'convert'
+  },
+  htmlToImage: {
+    name: 'HTML to Image',
+    desc: 'Convert HTML/text to image',
+    icon: 'fa-code',
+    color: '#00bcd4',
     category: 'convert'
   },
   // SECURITY
@@ -86,6 +108,24 @@ export default function ImageConverterPage() {
   const [cropY, setCropY] = useState(0);
   const [cropWidth, setCropWidth] = useState(100);
   const [cropHeight, setCropHeight] = useState(100);
+  
+  // Filter options
+  const [filterType, setFilterType] = useState('grayscale');
+  const [filterIntensity, setFilterIntensity] = useState(100);
+  const [brightness, setBrightness] = useState(100);
+  const [contrast, setContrast] = useState(100);
+  const [blur, setBlur] = useState(0);
+  
+  // Border options
+  const [borderWidth, setBorderWidth] = useState(20);
+  const [borderColor, setBorderColor] = useState('#ffffff');
+  const [borderStyle, setBorderStyle] = useState('solid');
+  
+  // HTML to Image
+  const [htmlContent, setHtmlContent] = useState('<h1 style="color: #333; font-family: Arial;">Hello World!</h1><p>This is a sample HTML content.</p>');
+  const [htmlWidth, setHtmlWidth] = useState(800);
+  const [htmlHeight, setHtmlHeight] = useState(600);
+  const [htmlBgColor, setHtmlBgColor] = useState('#ffffff');
   
   const fileInputRef = useRef(null);
 
@@ -291,6 +331,54 @@ export default function ImageConverterPage() {
               ctx.fillText(watermarkText, x, y);
               outputQuality = 0.92;
               break;
+              
+            case 'filters':
+              canvas.width = img.width;
+              canvas.height = img.height;
+              
+              // Build filter string
+              let filterStr = '';
+              switch (filterType) {
+                case 'grayscale':
+                  filterStr = `grayscale(${filterIntensity}%)`;
+                  break;
+                case 'sepia':
+                  filterStr = `sepia(${filterIntensity}%)`;
+                  break;
+                case 'invert':
+                  filterStr = `invert(${filterIntensity}%)`;
+                  break;
+                case 'saturate':
+                  filterStr = `saturate(${filterIntensity}%)`;
+                  break;
+                case 'hue-rotate':
+                  filterStr = `hue-rotate(${filterIntensity * 3.6}deg)`;
+                  break;
+              }
+              
+              // Add brightness, contrast, blur
+              filterStr += ` brightness(${brightness}%) contrast(${contrast}%)`;
+              if (blur > 0) filterStr += ` blur(${blur}px)`;
+              
+              ctx.filter = filterStr;
+              ctx.drawImage(img, 0, 0);
+              ctx.filter = 'none';
+              outputQuality = 0.92;
+              break;
+              
+            case 'border':
+              const bw = borderWidth;
+              canvas.width = img.width + bw * 2;
+              canvas.height = img.height + bw * 2;
+              
+              // Draw border background
+              ctx.fillStyle = borderColor;
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+              
+              // Draw image on top
+              ctx.drawImage(img, bw, bw);
+              outputQuality = 0.92;
+              break;
           }
           
           const mimeType = IMAGE_FORMATS[outputFormat]?.mimeType || 'image/jpeg';
@@ -349,6 +437,68 @@ export default function ImageConverterPage() {
     showToast('All images downloaded!');
   };
 
+  // HTML to Image conversion
+  const processHtmlToImage = async () => {
+    setIsLoading(true);
+    
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = htmlWidth;
+      canvas.height = htmlHeight;
+      const ctx = canvas.getContext('2d');
+      
+      // Fill background
+      ctx.fillStyle = htmlBgColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Create SVG with foreignObject to render HTML
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="${htmlWidth}" height="${htmlHeight}">
+          <foreignObject width="100%" height="100%">
+            <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; padding: 20px; box-sizing: border-box;">
+              ${htmlContent}
+            </div>
+          </foreignObject>
+        </svg>
+      `;
+      
+      const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+      const svgUrl = URL.createObjectURL(svgBlob);
+      
+      const img = new Image();
+      
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = svgUrl;
+      });
+      
+      ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(svgUrl);
+      
+      // Convert to blob
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 0.92));
+      
+      setResults([{
+        blob,
+        name: 'html_to_image.png',
+        originalName: 'HTML Content',
+        originalSize: htmlContent.length,
+        newSize: blob.size,
+        dataUrl: canvas.toDataURL('image/png'),
+        width: canvas.width,
+        height: canvas.height
+      }]);
+      
+      showToast('Image generated successfully!');
+    } catch (error) {
+      console.error('Error converting HTML to image:', error);
+      showToast('Failed to generate image. Try simpler HTML.', 'error');
+    }
+    
+    setIsLoading(false);
+  };
+
   const resetTool = () => {
     setFiles([]);
     setPreviews([]);
@@ -365,6 +515,7 @@ export default function ImageConverterPage() {
   const categories = {
     optimize: { name: 'OPTIMIZE', color: '#e74c3c' },
     modify: { name: 'MODIFY', color: '#3498db' },
+    effects: { name: 'EFFECTS', color: '#e91e63' },
     convert: { name: 'CONVERT', color: '#2ecc71' },
     security: { name: 'SECURITY', color: '#34495e' }
   };
@@ -444,8 +595,8 @@ export default function ImageConverterPage() {
               </h2>
             </div>
 
-            {/* Upload Zone */}
-            {files.length === 0 && (
+            {/* Upload Zone - for regular tools */}
+            {files.length === 0 && selectedTool !== 'htmlToImage' && (
               <div 
                 className={`upload-zone ${isDragging ? 'dragover' : ''}`}
                 onClick={() => fileInputRef.current?.click()}
@@ -470,6 +621,66 @@ export default function ImageConverterPage() {
                   multiple
                   onChange={(e) => handleFiles(e.target.files)}
                 />
+              </div>
+            )}
+
+            {/* HTML to Image - Special Input */}
+            {selectedTool === 'htmlToImage' && results.length === 0 && !isLoading && (
+              <div className="file-card show">
+                <div className="file-card-header">
+                  <div className="file-name">
+                    <div className="file-icon" style={{ background: IMAGE_TOOLS[selectedTool].color }}>
+                      <i className="fas fa-code"></i>
+                    </div>
+                    <div>
+                      <h3>HTML to Image</h3>
+                      <p>Convert HTML content to image</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="tool-options">
+                  <div className="input-group full">
+                    <label>HTML Content</label>
+                    <textarea 
+                      value={htmlContent} 
+                      onChange={(e) => setHtmlContent(e.target.value)}
+                      rows={8}
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        background: 'var(--glass-bg)',
+                        border: '1px solid var(--glass-border)',
+                        borderRadius: '8px',
+                        color: 'var(--text)',
+                        fontFamily: 'monospace',
+                        fontSize: '13px',
+                        resize: 'vertical'
+                      }}
+                    />
+                  </div>
+                  <div className="input-row">
+                    <div className="input-group">
+                      <label>Width (px)</label>
+                      <input type="number" value={htmlWidth} onChange={(e) => setHtmlWidth(parseInt(e.target.value) || 800)} />
+                    </div>
+                    <div className="input-group">
+                      <label>Height (px)</label>
+                      <input type="number" value={htmlHeight} onChange={(e) => setHtmlHeight(parseInt(e.target.value) || 600)} />
+                    </div>
+                    <div className="input-group">
+                      <label>Background</label>
+                      <input type="color" value={htmlBgColor} onChange={(e) => setHtmlBgColor(e.target.value)} 
+                        style={{ width: '100%', height: '42px', cursor: 'pointer' }} />
+                    </div>
+                  </div>
+                </div>
+
+                <button className="convert-btn" onClick={processHtmlToImage}
+                  style={{ background: `linear-gradient(135deg, ${IMAGE_TOOLS[selectedTool].color}, var(--secondary))` }}>
+                  <i className="fas fa-image"></i>
+                  Generate Image
+                </button>
               </div>
             )}
 
@@ -615,6 +826,58 @@ export default function ImageConverterPage() {
                       <h4 style={{ marginTop: '15px' }}>Opacity: {Math.round(watermarkOpacity * 100)}%</h4>
                       <input type="range" min="0.1" max="1" step="0.1" value={watermarkOpacity}
                         onChange={(e) => setWatermarkOpacity(parseFloat(e.target.value))} className="slider" />
+                    </>
+                  )}
+
+                  {selectedTool === 'filters' && (
+                    <>
+                      <h4>Filter Type</h4>
+                      <div className="button-group">
+                        {['grayscale', 'sepia', 'invert', 'saturate', 'hue-rotate'].map(f => (
+                          <button key={f} className={`option-btn ${filterType === f ? 'selected' : ''}`}
+                            onClick={() => setFilterType(f)}>
+                            {f.charAt(0).toUpperCase() + f.slice(1).replace('-', ' ')}
+                          </button>
+                        ))}
+                      </div>
+                      <h4 style={{ marginTop: '15px' }}>Intensity: {filterIntensity}%</h4>
+                      <input type="range" min="0" max="200" step="10" value={filterIntensity}
+                        onChange={(e) => setFilterIntensity(parseInt(e.target.value))} className="slider" />
+                      <h4 style={{ marginTop: '15px' }}>Brightness: {brightness}%</h4>
+                      <input type="range" min="50" max="150" step="5" value={brightness}
+                        onChange={(e) => setBrightness(parseInt(e.target.value))} className="slider" />
+                      <h4 style={{ marginTop: '15px' }}>Contrast: {contrast}%</h4>
+                      <input type="range" min="50" max="150" step="5" value={contrast}
+                        onChange={(e) => setContrast(parseInt(e.target.value))} className="slider" />
+                      <h4 style={{ marginTop: '15px' }}>Blur: {blur}px</h4>
+                      <input type="range" min="0" max="20" step="1" value={blur}
+                        onChange={(e) => setBlur(parseInt(e.target.value))} className="slider" />
+                    </>
+                  )}
+
+                  {selectedTool === 'border' && (
+                    <>
+                      <div className="input-row">
+                        <div className="input-group">
+                          <label>Border Width (px)</label>
+                          <input type="number" value={borderWidth} onChange={(e) => setBorderWidth(parseInt(e.target.value) || 0)} />
+                        </div>
+                        <div className="input-group">
+                          <label>Border Color</label>
+                          <input type="color" value={borderColor} onChange={(e) => setBorderColor(e.target.value)} 
+                            style={{ width: '100%', height: '42px', cursor: 'pointer' }} />
+                        </div>
+                      </div>
+                      <div className="button-group" style={{ marginTop: '15px' }}>
+                        <button className={`option-btn ${borderColor === '#ffffff' ? 'selected' : ''}`} 
+                          onClick={() => setBorderColor('#ffffff')}>White</button>
+                        <button className={`option-btn ${borderColor === '#000000' ? 'selected' : ''}`} 
+                          onClick={() => setBorderColor('#000000')}>Black</button>
+                        <button className={`option-btn ${borderColor === '#f5f5f5' ? 'selected' : ''}`} 
+                          onClick={() => setBorderColor('#f5f5f5')}>Light Gray</button>
+                        <button className={`option-btn ${borderColor === '#2c3e50' ? 'selected' : ''}`} 
+                          onClick={() => setBorderColor('#2c3e50')}>Dark</button>
+                      </div>
                     </>
                   )}
                 </div>
