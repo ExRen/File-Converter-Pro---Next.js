@@ -17,6 +17,7 @@ export default function ToolsPage() {
   const [qrLogoPreview, setQrLogoPreview] = useState(null);
   const [qrLogoSize, setQrLogoSize] = useState(20); // percentage
   const [qrResult, setQrResult] = useState(null);
+  const [qrSvg, setQrSvg] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   
   // JSON Formatter states
@@ -81,6 +82,19 @@ export default function ToolsPage() {
       
       const dataUrl = canvas.toDataURL('image/png');
       setQrResult(dataUrl);
+      
+      // Generate SVG version (without logo for clean SVG)
+      const svgString = await QRCode.toString(qrText, {
+        type: 'svg',
+        width: qrSize,
+        margin: 2,
+        color: {
+          dark: qrColor,
+          light: qrBgColor
+        }
+      });
+      setQrSvg(svgString);
+      
       showToast('QR Code berhasil dibuat!');
     } catch (error) {
       console.error('QR generation error:', error);
@@ -108,7 +122,21 @@ export default function ToolsPage() {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    showToast('QR Code downloaded!');
+    showToast('PNG downloaded!');
+  };
+
+  const downloadQRSVG = () => {
+    if (!qrSvg) return;
+    const blob = new Blob([qrSvg], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'qrcode.svg';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('SVG downloaded!');
   };
 
   // JSON Formatter
@@ -157,6 +185,64 @@ export default function ToolsPage() {
     } catch (error) {
       showToast('Invalid input', 'error');
     }
+  };
+
+  // SQL Generator states
+  const [sqlInput, setSqlInput] = useState('[\n  {"id": 1, "name": "John", "email": "john@example.com"},\n  {"id": 2, "name": "Jane", "email": "jane@example.com"}\n]');
+  const [sqlOutput, setSqlOutput] = useState('');
+  const [sqlTable, setSqlTable] = useState('users');
+  const [sqlDialect, setSqlDialect] = useState('mysql');
+
+  const generateSQL = () => {
+    try {
+      const data = JSON.parse(sqlInput);
+      if (!Array.isArray(data) || data.length === 0) {
+        showToast('Input should be a JSON array', 'error');
+        return;
+      }
+
+      const columns = Object.keys(data[0]);
+      let sql = '';
+
+      // Generate CREATE TABLE
+      sql += `-- Create table\nCREATE TABLE ${sqlTable} (\n`;
+      sql += columns.map(col => `  ${col} VARCHAR(255)`).join(',\n');
+      sql += '\n);\n\n';
+
+      // Generate INSERT statements
+      sql += `-- Insert data\n`;
+      
+      if (sqlDialect === 'mysql') {
+        sql += `INSERT INTO ${sqlTable} (${columns.join(', ')}) VALUES\n`;
+        sql += data.map(row => {
+          const values = columns.map(col => {
+            const val = row[col];
+            return typeof val === 'string' ? `'${val.replace(/'/g, "''")}'` : val;
+          });
+          return `  (${values.join(', ')})`;
+        }).join(',\n');
+        sql += ';';
+      } else {
+        // Individual INSERTs for other dialects
+        data.forEach(row => {
+          const values = columns.map(col => {
+            const val = row[col];
+            return typeof val === 'string' ? `'${val.replace(/'/g, "''")}'` : val;
+          });
+          sql += `INSERT INTO ${sqlTable} (${columns.join(', ')}) VALUES (${values.join(', ')});\n`;
+        });
+      }
+
+      setSqlOutput(sql);
+      showToast(`Generated SQL for ${data.length} rows!`);
+    } catch (error) {
+      showToast('Invalid JSON input', 'error');
+    }
+  };
+
+  const copySql = () => {
+    navigator.clipboard.writeText(sqlOutput);
+    showToast('SQL copied to clipboard!');
   };
 
   return (
@@ -303,9 +389,14 @@ export default function ToolsPage() {
                   {qrResult ? (
                     <>
                       <img src={qrResult} alt="QR Code" />
-                      <button className="download-btn" onClick={downloadQR}>
-                        <i className="fas fa-download"></i> Download PNG
-                      </button>
+                      <div className="button-group">
+                        <button className="download-btn" onClick={downloadQR}>
+                          <i className="fas fa-download"></i> PNG
+                        </button>
+                        <button className="download-btn svg" onClick={downloadQRSVG}>
+                          <i className="fas fa-download"></i> SVG
+                        </button>
+                      </div>
                     </>
                   ) : (
                     <div className="qr-placeholder">
@@ -386,14 +477,44 @@ export default function ToolsPage() {
           </div>
         )}
 
-        {/* SQL Generator - Coming Soon */}
+        {/* SQL Generator */}
         {activeTab === 'sql' && (
           <div className="tool-panel">
-            <div className="coming-soon">
-              <i className="fas fa-database"></i>
-              <h3>SQL Generator</h3>
-              <p>Convert CSV/JSON data to SQL INSERT statements</p>
-              <span className="badge">Coming Soon</span>
+            <div className="json-grid">
+              <div className="json-input">
+                <h4>JSON Input (Array of Objects)</h4>
+                <div className="input-row" style={{ marginBottom: '15px' }}>
+                  <div className="input-group">
+                    <label>Table Name</label>
+                    <input type="text" value={sqlTable} onChange={(e) => setSqlTable(e.target.value)} />
+                  </div>
+                  <div className="input-group">
+                    <label>Dialect</label>
+                    <select value={sqlDialect} onChange={(e) => setSqlDialect(e.target.value)}
+                      style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', 
+                        border: '1px solid var(--glass-border)', borderRadius: '10px', color: 'var(--text)' }}>
+                      <option value="mysql">MySQL (Batch Insert)</option>
+                      <option value="postgres">PostgreSQL</option>
+                      <option value="sqlite">SQLite</option>
+                    </select>
+                  </div>
+                </div>
+                <textarea 
+                  value={sqlInput}
+                  onChange={(e) => setSqlInput(e.target.value)}
+                  placeholder='[{"id": 1, "name": "John"}, {"id": 2, "name": "Jane"}]'
+                />
+                <button className="action-btn primary" onClick={generateSQL} style={{ marginTop: '15px' }}>
+                  <i className="fas fa-database"></i> Generate SQL
+                </button>
+              </div>
+              <div className="json-output">
+                <h4>SQL Output</h4>
+                <textarea value={sqlOutput} readOnly placeholder="Generated SQL will appear here..." />
+                <button className="action-btn" onClick={copySql} disabled={!sqlOutput} style={{ marginTop: '15px' }}>
+                  <i className="fas fa-copy"></i> Copy SQL
+                </button>
+              </div>
             </div>
           </div>
         )}
