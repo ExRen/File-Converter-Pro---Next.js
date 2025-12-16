@@ -66,7 +66,7 @@ export default function Home() {
     setIsDragging(false);
   };
 
-  const handleConvert = () => {
+  const handleConvert = async () => {
     if (!uploadedData || !selectedFormat) return;
     
     setIsLoading(true);
@@ -76,7 +76,7 @@ export default function Home() {
         ? selectedColumns 
         : null;
       
-      const result = convertToFormat(
+      const result = await convertToFormat(
         uploadedData, 
         columnsToExport, 
         selectedFormat, 
@@ -148,6 +148,7 @@ export default function Home() {
         <nav className="nav-links">
           <Link href="/" className="active"><i className="fas fa-exchange-alt"></i> File Converter</Link>
           <Link href="/pdf-tools"><i className="fas fa-file-pdf"></i> PDF Tools</Link>
+          <Link href="/image-converter"><i className="fas fa-images"></i> Image</Link>
         </nav>
       </header>
 
@@ -184,7 +185,7 @@ export default function Home() {
               type="file" 
               ref={fileInputRef}
               style={{ display: 'none' }}
-              accept=".csv,.xlsx,.xls,.json,.tsv,.html,.xml"
+              accept=".csv,.xlsx,.xls,.json,.tsv,.html,.xml,.yaml,.yml,.txt,.docx,.ini"
               onChange={(e) => e.target.files.length && handleFile(e.target.files[0])}
             />
           </div>

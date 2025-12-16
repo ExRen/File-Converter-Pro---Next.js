@@ -206,6 +206,7 @@ export default function PDFToolsPage() {
         <nav className="nav-links">
           <Link href="/"><i className="fas fa-exchange-alt"></i> File Converter</Link>
           <Link href="/pdf-tools" className="active"><i className="fas fa-file-pdf"></i> PDF Tools</Link>
+          <Link href="/image-converter"><i className="fas fa-images"></i> Image</Link>
         </nav>
       </header>
 
