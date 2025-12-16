@@ -186,7 +186,7 @@ export default function Home() {
               type="file" 
               ref={fileInputRef}
               style={{ display: 'none' }}
-              accept=".csv,.xlsx,.xls,.json,.tsv,.html,.xml,.yaml,.yml,.txt,.docx,.ini"
+              accept=".csv,.xlsx,.xls,.json,.tsv,.html,.xml,.yaml,.yml,.txt,.docx,.ini,.pdf"
               onChange={(e) => e.target.files.length && handleFile(e.target.files[0])}
             />
           </div>

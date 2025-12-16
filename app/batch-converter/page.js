@@ -220,7 +220,7 @@ export default function BatchConverterPage() {
             </div>
             <h3>Drop multiple files here</h3>
             <p>or click to browse from your computer</p>
-            <p className="hint">Supports: CSV, Excel, JSON, YAML, XML, HTML, TXT, DOCX, INI, TSV</p>
+            <p className="hint">Supports: CSV, Excel, JSON, YAML, XML, HTML, TXT, DOCX, INI, TSV, PDF</p>
             <button className="upload-btn">
               <i className="fas fa-folder-open"></i>
               Browse Files
@@ -229,7 +229,7 @@ export default function BatchConverterPage() {
               type="file" 
               ref={fileInputRef}
               style={{ display: 'none' }}
-              accept=".csv,.xlsx,.xls,.json,.tsv,.html,.xml,.yaml,.yml,.txt,.docx,.ini"
+              accept=".csv,.xlsx,.xls,.json,.tsv,.html,.xml,.yaml,.yml,.txt,.docx,.ini,.pdf"
               multiple
               onChange={(e) => handleFiles(e.target.files)}
             />
