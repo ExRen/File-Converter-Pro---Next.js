@@ -918,7 +918,23 @@ export default function ImageConverterPage() {
 
                 {/* Image Preview */}
                 <div className="preview-container">
-                  <img src={previews[0]?.dataUrl} alt="Preview" className="preview-image" />
+                  <img 
+                    src={previews[0]?.dataUrl} 
+                    alt="Preview" 
+                    className="preview-image"
+                    style={selectedTool === 'filters' ? {
+                      filter: `
+                        ${filterType === 'grayscale' ? `grayscale(${filterIntensity}%)` : ''}
+                        ${filterType === 'sepia' ? `sepia(${filterIntensity}%)` : ''}
+                        ${filterType === 'invert' ? `invert(${filterIntensity}%)` : ''}
+                        ${filterType === 'saturate' ? `saturate(${filterIntensity}%)` : ''}
+                        ${filterType === 'hue-rotate' ? `hue-rotate(${filterIntensity * 3.6}deg)` : ''}
+                        brightness(${brightness}%)
+                        contrast(${contrast}%)
+                        ${blur > 0 ? `blur(${blur}px)` : ''}
+                      `.trim()
+                    } : {}}
+                  />
                 </div>
 
                 {/* Tool Options */}
