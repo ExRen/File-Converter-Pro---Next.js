@@ -187,6 +187,13 @@ export default function ToolsPage() {
     { id: 'cron', name: 'Cron', icon: 'fa-calendar-alt', color: '#00e676' },
     { id: 'htmlent', name: 'HTML', icon: 'fa-code', color: '#ff6e40' },
     { id: 'slug', name: 'Slug', icon: 'fa-link', color: '#64ffda' },
+    { id: 'jwt', name: 'JWT', icon: 'fa-user-shield', color: '#536dfe' },
+    { id: 'escape', name: 'Escape', icon: 'fa-shield-alt', color: '#ffab40' },
+    { id: 'jsoncsv', name: 'CSV', icon: 'fa-table', color: '#69f0ae' },
+    { id: 'lipsum', name: 'Image', icon: 'fa-image', color: '#ff80ab' },
+    { id: 'device', name: 'Device', icon: 'fa-mobile-alt', color: '#7e57c2' },
+    { id: 'keycode', name: 'Key', icon: 'fa-keyboard', color: '#26a69a' },
+    { id: 'meta', name: 'Meta', icon: 'fa-tags', color: '#ff7043' },
   ];
 
   // Base64 states
@@ -837,6 +844,172 @@ export default function ToolsPage() {
       .replace(new RegExp(`^${slugSeparator}|${slugSeparator}$`, 'g'), '');
     setSlugOutput(slug);
     showToast('Slug generated!');
+  };
+
+  // JWT Decoder states
+  const [jwtInput, setJwtInput] = useState('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c');
+  const [jwtResult, setJwtResult] = useState(null);
+
+  const decodeJWT = () => {
+    try {
+      const parts = jwtInput.split('.');
+      if (parts.length !== 3) throw new Error('Invalid JWT');
+      
+      const header = JSON.parse(atob(parts[0]));
+      const payload = JSON.parse(atob(parts[1]));
+      
+      setJwtResult({ header, payload });
+      showToast('JWT decoded!');
+    } catch (error) {
+      showToast('Invalid JWT token', 'error');
+      setJwtResult(null);
+    }
+  };
+
+  // Escape String states
+  const [escapeInput, setEscapeInput] = useState('Hello "World"\nNew Line\tTab');
+  const [escapeOutput, setEscapeOutput] = useState('');
+  const [escapeMode, setEscapeMode] = useState('escape');
+
+  const processEscape = () => {
+    if (escapeMode === 'escape') {
+      const escaped = escapeInput
+        .replace(/\\/g, '\\\\')
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r')
+        .replace(/\t/g, '\\t');
+      setEscapeOutput(escaped);
+    } else {
+      const unescaped = escapeInput
+        .replace(/\\n/g, '\n')
+        .replace(/\\r/g, '\r')
+        .replace(/\\t/g, '\t')
+        .replace(/\\"/g, '"')
+        .replace(/\\\\/g, '\\');
+      setEscapeOutput(unescaped);
+    }
+    showToast(`String ${escapeMode}d!`);
+  };
+
+  // JSON to CSV states
+  const [csvJsonInput, setCsvJsonInput] = useState('[{"name":"John","age":30},{"name":"Jane","age":25}]');
+  const [csvOutput, setCsvOutput] = useState('');
+
+  const jsonToCsv = () => {
+    try {
+      const data = JSON.parse(csvJsonInput);
+      if (!Array.isArray(data) || data.length === 0) throw new Error('Need array');
+      
+      const headers = Object.keys(data[0]);
+      const csv = [
+        headers.join(','),
+        ...data.map(row => headers.map(h => `"${(row[h] || '').toString().replace(/"/g, '""')}"`).join(','))
+      ].join('\n');
+      
+      setCsvOutput(csv);
+      showToast('Converted to CSV!');
+    } catch (error) {
+      showToast('Invalid JSON array', 'error');
+    }
+  };
+
+  // Placeholder Image states
+  const [imgWidth, setImgWidth] = useState(400);
+  const [imgHeight, setImgHeight] = useState(300);
+  const [imgBgColor, setImgBgColor] = useState('#6366f1');
+  const [imgTextColor, setImgTextColor] = useState('#ffffff');
+  const [imgText, setImgText] = useState('');
+
+  const getPlaceholderUrl = () => {
+    const text = imgText || `${imgWidth}x${imgHeight}`;
+    return `https://via.placeholder.com/${imgWidth}x${imgHeight}/${imgBgColor.slice(1)}/${imgTextColor.slice(1)}?text=${encodeURIComponent(text)}`;
+  };
+
+  // Device Info states
+  const [deviceInfo, setDeviceInfo] = useState({});
+  useEffect(() => {
+    if (activeTab === 'device') {
+      const info = {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        language: navigator.language,
+        screenRes: `${window.screen.width}x${window.screen.height}`,
+        windowSize: `${window.innerWidth}x${window.innerHeight}`,
+        pixelRatio: window.devicePixelRatio,
+        cookiesEnabled: navigator.cookieEnabled ? 'Yes' : 'No',
+        online: navigator.onLine ? 'Yes' : 'No'
+      };
+      setDeviceInfo(info);
+
+      const handleResize = () => {
+        setDeviceInfo(prev => ({
+          ...prev,
+          windowSize: `${window.innerWidth}x${window.innerHeight}`,
+          screenRes: `${window.screen.width}x${window.screen.height}`
+        }));
+      };
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, [activeTab]);
+
+  // Keycode states
+  const [keyEvent, setKeyEvent] = useState(null);
+  useEffect(() => {
+    if (activeTab === 'keycode') {
+      const handleKeyDown = (e) => {
+        e.preventDefault();
+        setKeyEvent({
+          key: e.key === ' ' ? 'Space' : e.key,
+          keyCode: e.keyCode,
+          code: e.code,
+          which: e.which,
+          location: e.location,
+          modifiers: [
+            e.ctrlKey ? 'Ctrl' : null,
+            e.altKey ? 'Alt' : null,
+            e.shiftKey ? 'Shift' : null,
+            e.metaKey ? 'Meta' : null
+          ].filter(Boolean).join(' + ')
+        });
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [activeTab]);
+
+  // Meta Tag Generator states
+  const [metaInfo, setMetaInfo] = useState({
+    title: '', description: '', keywords: '', author: '',
+    ogTitle: '', ogDesc: '', ogImage: '', themeColor: '#000000'
+  });
+  const [metaOutput, setMetaOutput] = useState('');
+
+  const generateMeta = () => {
+    const tags = [
+      `<!-- Primary Meta Tags -->`,
+      `<title>${metaInfo.title}</title>`,
+      `<meta name="title" content="${metaInfo.title}">`,
+      `<meta name="description" content="${metaInfo.description}">`,
+      `<meta name="keywords" content="${metaInfo.keywords}">`,
+      `<meta name="author" content="${metaInfo.author}">`,
+      `<meta name="theme-color" content="${metaInfo.themeColor}">`,
+      '',
+      `<!-- Open Graph / Facebook -->`,
+      `<meta property="og:type" content="website">`,
+      `<meta property="og:title" content="${metaInfo.ogTitle || metaInfo.title}">`,
+      `<meta property="og:description" content="${metaInfo.ogDesc || metaInfo.description}">`,
+      `<meta property="og:image" content="${metaInfo.ogImage}">`,
+      '',
+      `<!-- Twitter -->`,
+      `<meta property="twitter:card" content="summary_large_image">`,
+      `<meta property="twitter:title" content="${metaInfo.ogTitle || metaInfo.title}">`,
+      `<meta property="twitter:description" content="${metaInfo.ogDesc || metaInfo.description}">`,
+      `<meta property="twitter:image" content="${metaInfo.ogImage}">`,
+    ].join('\n');
+    setMetaOutput(tags);
+    showToast('Meta tags generated!');
   };
 
   return (
@@ -1831,6 +2004,236 @@ export default function ToolsPage() {
                 <div className="slug-result">
                   <span className="slug-value">{slugOutput}</span>
                   <button onClick={() => { navigator.clipboard.writeText(slugOutput); showToast('Slug copied!'); }}>
+                    <i className="fas fa-copy"></i>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* JWT Decoder */}
+        {activeTab === 'jwt' && (
+          <div className="tool-panel">
+            <div className="jwt-layout">
+              <div className="input-group">
+                <label>JWT Token</label>
+                <textarea value={jwtInput} onChange={(e) => setJwtInput(e.target.value)}
+                  placeholder="Paste your JWT token here..." style={{ fontFamily: 'Fira Code, monospace', fontSize: '12px' }} />
+              </div>
+              <button className="action-btn primary full" onClick={decodeJWT}>
+                <i className="fas fa-unlock"></i> Decode JWT
+              </button>
+              
+              {jwtResult && (
+                <div className="jwt-results">
+                  <div className="jwt-section">
+                    <h4>Header</h4>
+                    <pre>{JSON.stringify(jwtResult.header, null, 2)}</pre>
+                  </div>
+                  <div className="jwt-section">
+                    <h4>Payload</h4>
+                    <pre>{JSON.stringify(jwtResult.payload, null, 2)}</pre>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Escape String */}
+        {activeTab === 'escape' && (
+          <div className="tool-panel">
+            <div className="mode-toggle" style={{ marginBottom: '20px' }}>
+              <button className={`option-btn ${escapeMode === 'escape' ? 'active' : ''}`}
+                onClick={() => setEscapeMode('escape')}>Escape</button>
+              <button className={`option-btn ${escapeMode === 'unescape' ? 'active' : ''}`}
+                onClick={() => setEscapeMode('unescape')}>Unescape</button>
+            </div>
+            <div className="json-grid">
+              <div className="json-input">
+                <h4>Input</h4>
+                <textarea value={escapeInput} onChange={(e) => setEscapeInput(e.target.value)} />
+                <button className="action-btn primary" onClick={processEscape}>
+                  <i className="fas fa-shield-alt"></i> {escapeMode === 'escape' ? 'Escape' : 'Unescape'}
+                </button>
+              </div>
+              <div className="json-output">
+                <h4>Output</h4>
+                <textarea value={escapeOutput} readOnly />
+                <button className="action-btn" onClick={() => { navigator.clipboard.writeText(escapeOutput); showToast('Copied!'); }}>
+                  <i className="fas fa-copy"></i> Copy
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* JSON to CSV */}
+        {activeTab === 'jsoncsv' && (
+          <div className="tool-panel">
+            <div className="json-grid">
+              <div className="json-input">
+                <h4>JSON Array</h4>
+                <textarea value={csvJsonInput} onChange={(e) => setCsvJsonInput(e.target.value)}
+                  placeholder='[{"name":"John","age":30}]' />
+                <button className="action-btn primary" onClick={jsonToCsv}>
+                  <i className="fas fa-table"></i> Convert to CSV
+                </button>
+              </div>
+              <div className="json-output">
+                <h4>CSV Output</h4>
+                <textarea value={csvOutput} readOnly />
+                <button className="action-btn" onClick={() => { navigator.clipboard.writeText(csvOutput); showToast('Copied!'); }}>
+                  <i className="fas fa-copy"></i> Copy
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Placeholder Image */}
+        {activeTab === 'lipsum' && (
+          <div className="tool-panel">
+            <div className="image-placeholder-layout">
+              <div className="input-row">
+                <div className="input-group">
+                  <label>Width</label>
+                  <input type="number" value={imgWidth} onChange={(e) => setImgWidth(e.target.value)} />
+                </div>
+                <div className="input-group">
+                  <label>Height</label>
+                  <input type="number" value={imgHeight} onChange={(e) => setImgHeight(e.target.value)} />
+                </div>
+                <div className="input-group">
+                  <label>BG Color</label>
+                  <input type="color" value={imgBgColor} onChange={(e) => setImgBgColor(e.target.value)} />
+                </div>
+                <div className="input-group">
+                  <label>Text Color</label>
+                  <input type="color" value={imgTextColor} onChange={(e) => setImgTextColor(e.target.value)} />
+                </div>
+              </div>
+              <div className="input-group">
+                <label>Custom Text (optional)</label>
+                <input type="text" value={imgText} onChange={(e) => setImgText(e.target.value)} placeholder="Leave empty for dimensions" />
+              </div>
+              
+              <div className="placeholder-preview">
+                <img src={getPlaceholderUrl()} alt="Placeholder" />
+              </div>
+              
+              <div className="input-row">
+                <button className="action-btn" onClick={() => { navigator.clipboard.writeText(getPlaceholderUrl()); showToast('URL copied!'); }}>
+                  <i className="fas fa-link"></i> Copy URL
+                </button>
+                <button className="action-btn" onClick={() => { navigator.clipboard.writeText(`<img src="${getPlaceholderUrl()}" alt="Placeholder">`); showToast('HTML copied!'); }}>
+                  <i className="fas fa-code"></i> Copy HTML
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Device Info */}
+        {activeTab === 'device' && (
+          <div className="tool-panel">
+            <div className="json-grid">
+              <div className="device-info-grid">
+                {Object.entries(deviceInfo).map(([key, val]) => (
+                  <div key={key} className="device-card">
+                    <span className="device-label">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                    <span className="device-value">{val}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Keycode Viewer */}
+        {activeTab === 'keycode' && (
+          <div className="tool-panel">
+            {!keyEvent ? (
+              <div className="keycode-placeholder">
+                <i className="fas fa-keyboard" style={{ fontSize: '48px', marginBottom: '20px', color: 'var(--text-muted)' }}></i>
+                <h3>Press any key on your keyboard</h3>
+              </div>
+            ) : (
+              <div className="keycode-display">
+                <div className="main-key">
+                  <span>{keyEvent.key}</span>
+                  <div className="key-label">event.key</div>
+                </div>
+                <div className="key-details">
+                  {[
+                    { l: 'event.keyCode', v: keyEvent.keyCode },
+                    { l: 'event.code', v: keyEvent.code },
+                    { l: 'event.which', v: keyEvent.which },
+                    { l: 'event.location', v: keyEvent.location },
+                    { l: 'Modifiers', v: keyEvent.modifiers || 'None' }
+                  ].map((item, i) => (
+                    <div key={i} className="key-detail-card">
+                      <span className="detail-value">{item.v}</span>
+                      <span className="detail-label">{item.l}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Meta Tag Generator */}
+        {activeTab === 'meta' && (
+          <div className="tool-panel">
+            <div className="meta-layout">
+              <div className="input-row">
+                <div className="input-group">
+                  <label>Site Title</label>
+                  <input type="text" value={metaInfo.title} onChange={(e) => setMetaInfo({...metaInfo, title: e.target.value})} placeholder="My Awesome Site" />
+                </div>
+                <div className="input-group">
+                  <label>Theme Color</label>
+                  <input type="color" value={metaInfo.themeColor} onChange={(e) => setMetaInfo({...metaInfo, themeColor: e.target.value})} style={{ height: '42px' }} />
+                </div>
+              </div>
+              <div className="input-group">
+                <label>Description</label>
+                <textarea value={metaInfo.description} onChange={(e) => setMetaInfo({...metaInfo, description: e.target.value})} placeholder="Site description..." style={{ minHeight: '80px' }} />
+              </div>
+              <div className="input-row">
+                <div className="input-group">
+                  <label>Keywords</label>
+                  <input type="text" value={metaInfo.keywords} onChange={(e) => setMetaInfo({...metaInfo, keywords: e.target.value})} placeholder="react, tools, converter" />
+                </div>
+                <div className="input-group">
+                  <label>Author</label>
+                  <input type="text" value={metaInfo.author} onChange={(e) => setMetaInfo({...metaInfo, author: e.target.value})} placeholder="John Doe" />
+                </div>
+              </div>
+              
+              <div className="section-divider"><span>Open Graph / Social</span></div>
+              
+              <div className="input-row">
+                <div className="input-group">
+                  <label>OG Title (optional)</label>
+                  <input type="text" value={metaInfo.ogTitle} onChange={(e) => setMetaInfo({...metaInfo, ogTitle: e.target.value})} placeholder="Same as title if empty" />
+                </div>
+                <div className="input-group">
+                  <label>OG Image URL</label>
+                  <input type="text" value={metaInfo.ogImage} onChange={(e) => setMetaInfo({...metaInfo, ogImage: e.target.value})} placeholder="https://example.com/image.jpg" />
+                </div>
+              </div>
+
+              <button className="action-btn primary full" onClick={generateMeta}>
+                <i className="fas fa-magic"></i> Generate Meta Tags
+              </button>
+
+              {metaOutput && (
+                <div className="meta-output">
+                  <textarea value={metaOutput} readOnly style={{ minHeight: '300px', fontFamily: 'Fira Code, monospace', fontSize: '12px' }} />
+                  <button className="action-btn" onClick={() => { navigator.clipboard.writeText(metaOutput); showToast('Copied!'); }}>
                     <i className="fas fa-copy"></i>
                   </button>
                 </div>
@@ -2932,6 +3335,216 @@ export default function ToolsPage() {
         .slug-result button:hover {
           background: var(--primary);
           border-color: var(--primary);
+        }
+
+        /* JWT Decoder */
+        .jwt-layout {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        .jwt-results {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+          margin-top: 10px;
+        }
+
+        .jwt-section h4 {
+          margin-bottom: 10px;
+          color: var(--secondary);
+          font-size: 14px;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+        }
+
+        .jwt-section pre {
+          background: rgba(0,0,0,0.3);
+          padding: 15px;
+          border-radius: 10px;
+          border: 1px solid var(--glass-border);
+          color: var(--text);
+          font-family: 'Fira Code', monospace;
+          font-size: 12px;
+          overflow-x: auto;
+          white-space: pre-wrap;
+          max-height: 400px;
+          overflow-y: auto;
+        }
+
+        @media (max-width: 768px) {
+          .jwt-results {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        /* Placeholder Image */
+        .image-placeholder-layout {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        .placeholder-preview {
+          background: rgba(0,0,0,0.2);
+          padding: 20px;
+          border-radius: 12px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          min-height: 200px;
+          border: 1px dashed var(--glass-border);
+          margin: 10px 0;
+        }
+
+        .placeholder-preview img {
+          max-width: 100%;
+          height: auto;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+          border-radius: 4px;
+        }
+
+        /* Device Info */
+        .device-info-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+          gap: 15px;
+        }
+
+        .device-card {
+          background: rgba(255,255,255,0.03);
+          border: 1px solid var(--glass-border);
+          border-radius: 12px;
+          padding: 15px;
+          display: flex;
+          flex-direction: column;
+          gap: 5px;
+        }
+
+        .device-label {
+          color: var(--secondary);
+          font-size: 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .device-value {
+          font-weight: 600;
+          font-size: 14px;
+          color: var(--text);
+          word-break: break-all;
+        }
+
+        /* Keycode Viewer */
+        .keycode-placeholder {
+          text-align: center;
+          padding: 40px;
+          color: var(--text-muted);
+        }
+
+        .keycode-display {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 30px;
+        }
+
+        .main-key {
+          width: 150px;
+          height: 150px;
+          background: linear-gradient(135deg, var(--primary), var(--secondary));
+          border-radius: 20px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+          animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .main-key span {
+          font-size: 48px;
+          font-weight: bold;
+          color: white;
+        }
+
+        .main-key .key-label {
+          font-size: 12px;
+          color: rgba(255,255,255,0.8);
+          margin-top: 5px;
+        }
+
+        .key-details {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+          gap: 15px;
+          width: 100%;
+        }
+
+        .key-detail-card {
+           background: rgba(255,255,255,0.03);
+           border: 1px solid var(--glass-border);
+           border-radius: 10px;
+           padding: 12px;
+           text-align: center;
+           display: flex;
+           flex-direction: column-reverse; /* Swap label and value */
+           gap: 5px;
+        }
+        
+        .detail-label {
+          font-size: 11px;
+          color: var(--text-muted);
+          text-transform: uppercase;
+        }
+
+        .detail-value {
+          font-family: 'Fira Code', monospace;
+          font-size: 16px;
+          font-weight: 600;
+          color: var(--primary-light);
+        }
+
+        /* Meta Tag Generator */
+        .meta-layout {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        .section-divider {
+          display: flex;
+          align-items: center;
+          text-align: center;
+          color: var(--text-muted);
+          font-size: 12px;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          margin: 10px 0;
+        }
+
+        .section-divider::before,
+        .section-divider::after {
+          content: '';
+          flex: 1;
+          border-bottom: 1px solid var(--glass-border);
+        }
+
+        .section-divider span {
+          padding: 0 10px;
+        }
+
+        .meta-output {
+          display: flex;
+          gap: 10px;
+          margin-top: 10px;
+          align-items: flex-start;
+        }
+
+        .meta-output textarea {
+          flex: 1;
+          background: rgba(0,0,0,0.3);
         }
       `}</style>
     </>
