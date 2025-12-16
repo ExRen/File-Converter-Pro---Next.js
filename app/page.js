@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
+import Link from 'next/link';
 import { parseFile, convertToFormat, estimateMemory, SUPPORTED_FORMATS } from '@/lib/converter';
 
 export default function Home() {
@@ -145,9 +146,8 @@ export default function Home() {
           <span>FileConverter<span style={{ color: 'var(--secondary)' }}>Pro</span></span>
         </div>
         <nav className="nav-links">
-          <a href="#"><i className="fas fa-home"></i> Home</a>
-          <a href="#formats"><i className="fas fa-file-alt"></i> Formats</a>
-          <a href="#about"><i className="fas fa-info-circle"></i> About</a>
+          <Link href="/" className="active"><i className="fas fa-exchange-alt"></i> File Converter</Link>
+          <Link href="/pdf-tools"><i className="fas fa-file-pdf"></i> PDF Tools</Link>
         </nav>
       </header>
 
