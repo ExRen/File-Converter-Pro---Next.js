@@ -179,6 +179,12 @@ export default function ToolsPage() {
     { id: 'timestamp', name: 'Time', icon: 'fa-clock', color: '#ff9800' },
     { id: 'wordcount', name: 'Counter', icon: 'fa-calculator', color: '#2196f3' },
     { id: 'urlcode', name: 'URL', icon: 'fa-link', color: '#8bc34a' },
+    { id: 'diff', name: 'Diff', icon: 'fa-columns', color: '#ff4081' },
+    { id: 'minify', name: 'Minify', icon: 'fa-compress', color: '#00acc1' },
+    { id: 'basenum', name: 'Base', icon: 'fa-hashtag', color: '#7c4dff' },
+    { id: 'ascii', name: 'ASCII', icon: 'fa-text-width', color: '#ffc107' },
+    { id: 'uuid', name: 'UUID', icon: 'fa-id-badge', color: '#e040fb' },
+    { id: 'cron', name: 'Cron', icon: 'fa-calendar-alt', color: '#00e676' },
   ];
 
   // Base64 states
@@ -621,6 +627,178 @@ export default function ToolsPage() {
     } catch (error) {
       showToast('Invalid input', 'error');
     }
+  };
+
+  // Diff Viewer states
+  const [diffText1, setDiffText1] = useState('Hello World\nThis is line 2\nLine 3 here');
+  const [diffText2, setDiffText2] = useState('Hello World\nThis is line 2 modified\nLine 3 here\nNew line 4');
+  const [diffResult, setDiffResult] = useState([]);
+
+  const compareDiff = () => {
+    const lines1 = diffText1.split('\n');
+    const lines2 = diffText2.split('\n');
+    const maxLen = Math.max(lines1.length, lines2.length);
+    const result = [];
+
+    for (let i = 0; i < maxLen; i++) {
+      const l1 = lines1[i] || '';
+      const l2 = lines2[i] || '';
+      if (l1 === l2) {
+        result.push({ type: 'same', line1: l1, line2: l2 });
+      } else if (!l1) {
+        result.push({ type: 'added', line1: '', line2: l2 });
+      } else if (!l2) {
+        result.push({ type: 'removed', line1: l1, line2: '' });
+      } else {
+        result.push({ type: 'changed', line1: l1, line2: l2 });
+      }
+    }
+    setDiffResult(result);
+    showToast('Comparison complete!');
+  };
+
+  // Minify states
+  const [minifyInput, setMinifyInput] = useState('');
+  const [minifyOutput, setMinifyOutput] = useState('');
+  const [minifyType, setMinifyType] = useState('css');
+
+  const minifyCode = () => {
+    let output = minifyInput;
+    if (minifyType === 'css') {
+      // Remove comments, whitespace, newlines
+      output = output
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/\s+/g, ' ')
+        .replace(/\s*{\s*/g, '{')
+        .replace(/\s*}\s*/g, '}')
+        .replace(/\s*;\s*/g, ';')
+        .replace(/\s*:\s*/g, ':')
+        .replace(/\s*,\s*/g, ',')
+        .trim();
+    } else {
+      // JS minification (basic)
+      output = output
+        .replace(/\/\/.*$/gm, '')
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/\s+/g, ' ')
+        .replace(/\s*([{}()[\];,=+\-*/<>!&|])\s*/g, '$1')
+        .trim();
+    }
+    setMinifyOutput(output);
+    const saved = ((minifyInput.length - output.length) / minifyInput.length * 100).toFixed(1);
+    showToast(`Minified! Saved ${saved}%`);
+  };
+
+  // Number Base Converter states
+  const [baseInput, setBaseInput] = useState('255');
+  const [baseFrom, setBaseFrom] = useState('10');
+  const [baseResults, setBaseResults] = useState({});
+
+  const convertBase = () => {
+    try {
+      const decimal = parseInt(baseInput, parseInt(baseFrom));
+      if (isNaN(decimal)) throw new Error('Invalid');
+      
+      setBaseResults({
+        binary: decimal.toString(2),
+        octal: decimal.toString(8),
+        decimal: decimal.toString(10),
+        hex: decimal.toString(16).toUpperCase()
+      });
+      showToast('Converted!');
+    } catch (error) {
+      showToast('Invalid number', 'error');
+    }
+  };
+
+  // ASCII Converter states
+  const [asciiText, setAsciiText] = useState('Hello');
+  const [asciiMode, setAsciiMode] = useState('toAscii');
+  const [asciiResult, setAsciiResult] = useState('');
+
+  const convertAscii = () => {
+    if (asciiMode === 'toAscii') {
+      const codes = asciiText.split('').map(c => c.charCodeAt(0));
+      setAsciiResult(codes.join(' '));
+    } else {
+      try {
+        const chars = asciiText.split(/\s+/).map(n => String.fromCharCode(parseInt(n)));
+        setAsciiResult(chars.join(''));
+      } catch {
+        showToast('Invalid codes', 'error');
+        return;
+      }
+    }
+    showToast('Converted!');
+  };
+
+  // UUID Generator states
+  const [uuidList, setUuidList] = useState([]);
+  const [uuidCount, setUuidCount] = useState(5);
+
+  const generateUUID = () => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  };
+
+  const generateUUIDs = () => {
+    const uuids = [];
+    for (let i = 0; i < uuidCount; i++) {
+      uuids.push(generateUUID());
+    }
+    setUuidList(uuids);
+    showToast(`Generated ${uuidCount} UUIDs!`);
+  };
+
+  // Cron Parser states
+  const [cronInput, setCronInput] = useState('0 9 * * 1-5');
+  const [cronResult, setCronResult] = useState('');
+
+  const parseCron = () => {
+    const parts = cronInput.trim().split(/\s+/);
+    if (parts.length !== 5) {
+      setCronResult('Invalid cron expression (need 5 parts: min hour day month weekday)');
+      showToast('Invalid format', 'error');
+      return;
+    }
+
+    const [min, hour, day, month, weekday] = parts;
+    const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const months = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+    let description = 'Runs ';
+    
+    // Time
+    if (min === '0' && hour !== '*') description += `at ${hour}:00 `;
+    else if (min !== '*' && hour !== '*') description += `at ${hour}:${min.padStart(2, '0')} `;
+    else if (min === '*') description += 'every minute ';
+    else description += `at minute ${min} `;
+
+    // Day
+    if (day === '*' && weekday === '*') description += 'every day';
+    else if (day !== '*' && day !== '?') description += `on day ${day} of the month`;
+    else if (weekday !== '*') {
+      if (weekday.includes('-')) {
+        const [start, end] = weekday.split('-').map(n => weekdays[parseInt(n)] || n);
+        description += `${start} to ${end}`;
+      } else if (weekday.includes(',')) {
+        const days = weekday.split(',').map(n => weekdays[parseInt(n)] || n);
+        description += days.join(', ');
+      } else {
+        description += weekdays[parseInt(weekday)] || weekday;
+      }
+    }
+
+    // Month
+    if (month !== '*') {
+      description += ` in ${months[parseInt(month)] || month}`;
+    }
+
+    setCronResult(description);
+    showToast('Parsed!');
   };
 
   return (
@@ -1344,6 +1522,214 @@ export default function ToolsPage() {
                 <button className="action-btn" onClick={() => { navigator.clipboard.writeText(urlOutput); showToast('Copied!'); }}>
                   <i className="fas fa-copy"></i> Copy
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Diff Viewer */}
+        {activeTab === 'diff' && (
+          <div className="tool-panel">
+            <div className="diff-layout">
+              <div className="diff-inputs">
+                <div className="input-group">
+                  <label>Original Text</label>
+                  <textarea value={diffText1} onChange={(e) => setDiffText1(e.target.value)} />
+                </div>
+                <div className="input-group">
+                  <label>Modified Text</label>
+                  <textarea value={diffText2} onChange={(e) => setDiffText2(e.target.value)} />
+                </div>
+              </div>
+              <button className="action-btn primary full" onClick={compareDiff}>
+                <i className="fas fa-columns"></i> Compare
+              </button>
+              
+              {diffResult.length > 0 && (
+                <div className="diff-result">
+                  {diffResult.map((line, i) => (
+                    <div key={i} className={`diff-line ${line.type}`}>
+                      <span className="line-num">{i + 1}</span>
+                      <span className="line-content left">{line.line1 || '—'}</span>
+                      <span className="line-content right">{line.line2 || '—'}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Minifier */}
+        {activeTab === 'minify' && (
+          <div className="tool-panel">
+            <div className="mode-toggle" style={{ marginBottom: '20px' }}>
+              <button className={`option-btn ${minifyType === 'css' ? 'active' : ''}`}
+                onClick={() => setMinifyType('css')}>CSS</button>
+              <button className={`option-btn ${minifyType === 'js' ? 'active' : ''}`}
+                onClick={() => setMinifyType('js')}>JavaScript</button>
+            </div>
+            <div className="json-grid">
+              <div className="json-input">
+                <h4>Input ({minifyInput.length} chars)</h4>
+                <textarea value={minifyInput} onChange={(e) => setMinifyInput(e.target.value)}
+                  placeholder={`Paste your ${minifyType.toUpperCase()} code here...`} />
+                <button className="action-btn primary" onClick={minifyCode}>
+                  <i className="fas fa-compress"></i> Minify
+                </button>
+              </div>
+              <div className="json-output">
+                <h4>Output ({minifyOutput.length} chars)</h4>
+                <textarea value={minifyOutput} readOnly />
+                <button className="action-btn" onClick={() => { navigator.clipboard.writeText(minifyOutput); showToast('Copied!'); }}>
+                  <i className="fas fa-copy"></i> Copy
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Number Base Converter */}
+        {activeTab === 'basenum' && (
+          <div className="tool-panel">
+            <div className="base-layout">
+              <div className="input-row">
+                <div className="input-group" style={{ flex: 2 }}>
+                  <label>Number</label>
+                  <input type="text" value={baseInput} onChange={(e) => setBaseInput(e.target.value)} />
+                </div>
+                <div className="input-group" style={{ flex: 1 }}>
+                  <label>From Base</label>
+                  <div className="button-group">
+                    {[{v:'2',n:'Bin'},{v:'8',n:'Oct'},{v:'10',n:'Dec'},{v:'16',n:'Hex'}].map(b => (
+                      <button key={b.v} className={`option-btn ${baseFrom === b.v ? 'active' : ''}`}
+                        onClick={() => setBaseFrom(b.v)}>{b.n}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <button className="action-btn primary full" onClick={convertBase}>
+                <i className="fas fa-exchange-alt"></i> Convert
+              </button>
+              
+              {Object.keys(baseResults).length > 0 && (
+                <div className="base-results">
+                  {Object.entries(baseResults).map(([base, val]) => (
+                    <div key={base} className="base-row">
+                      <span className="base-label">{base.toUpperCase()}</span>
+                      <span className="base-value">{val}</span>
+                      <button onClick={() => { navigator.clipboard.writeText(val); showToast('Copied!'); }}>
+                        <i className="fas fa-copy"></i>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ASCII Converter */}
+        {activeTab === 'ascii' && (
+          <div className="tool-panel">
+            <div className="mode-toggle" style={{ marginBottom: '20px' }}>
+              <button className={`option-btn ${asciiMode === 'toAscii' ? 'active' : ''}`}
+                onClick={() => setAsciiMode('toAscii')}>Text → ASCII</button>
+              <button className={`option-btn ${asciiMode === 'toText' ? 'active' : ''}`}
+                onClick={() => setAsciiMode('toText')}>ASCII → Text</button>
+            </div>
+            <div className="json-grid">
+              <div className="json-input">
+                <h4>{asciiMode === 'toAscii' ? 'Text' : 'ASCII Codes (space separated)'}</h4>
+                <textarea value={asciiText} onChange={(e) => setAsciiText(e.target.value)}
+                  placeholder={asciiMode === 'toAscii' ? 'Enter text...' : 'Enter codes like 72 101 108...'} />
+                <button className="action-btn primary" onClick={convertAscii}>
+                  <i className="fas fa-exchange-alt"></i> Convert
+                </button>
+              </div>
+              <div className="json-output">
+                <h4>{asciiMode === 'toAscii' ? 'ASCII Codes' : 'Text'}</h4>
+                <textarea value={asciiResult} readOnly />
+                <button className="action-btn" onClick={() => { navigator.clipboard.writeText(asciiResult); showToast('Copied!'); }}>
+                  <i className="fas fa-copy"></i> Copy
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* UUID Generator */}
+        {activeTab === 'uuid' && (
+          <div className="tool-panel">
+            <div className="uuid-layout">
+              <div className="input-row" style={{ alignItems: 'end' }}>
+                <div className="input-group">
+                  <label>Generate Count: {uuidCount}</label>
+                  <input type="range" min="1" max="20" value={uuidCount}
+                    onChange={(e) => setUuidCount(parseInt(e.target.value))} className="slider" />
+                </div>
+                <button className="action-btn primary" onClick={generateUUIDs}>
+                  <i className="fas fa-sync"></i> Generate UUIDs
+                </button>
+              </div>
+              
+              {uuidList.length > 0 && (
+                <div className="uuid-results">
+                  {uuidList.map((uuid, i) => (
+                    <div key={i} className="uuid-row">
+                      <span className="uuid-value">{uuid}</span>
+                      <button onClick={() => { navigator.clipboard.writeText(uuid); showToast('Copied!'); }}>
+                        <i className="fas fa-copy"></i>
+                      </button>
+                    </div>
+                  ))}
+                  <button className="action-btn full" onClick={() => { 
+                    navigator.clipboard.writeText(uuidList.join('\n')); 
+                    showToast('All UUIDs copied!'); 
+                  }}>
+                    <i className="fas fa-copy"></i> Copy All
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Cron Parser */}
+        {activeTab === 'cron' && (
+          <div className="tool-panel">
+            <div className="cron-layout">
+              <div className="input-group">
+                <label>Cron Expression (5 parts: min hour day month weekday)</label>
+                <input type="text" value={cronInput} onChange={(e) => setCronInput(e.target.value)}
+                  placeholder="0 9 * * 1-5" />
+              </div>
+              <button className="action-btn primary full" onClick={parseCron}>
+                <i className="fas fa-calendar-alt"></i> Parse Cron
+              </button>
+              
+              {cronResult && (
+                <div className="cron-result">
+                  <i className="fas fa-clock"></i>
+                  <span>{cronResult}</span>
+                </div>
+              )}
+
+              <div className="cron-examples">
+                <h4>Common Examples</h4>
+                <div className="example-grid">
+                  {[
+                    { cron: '0 0 * * *', desc: 'Daily at midnight' },
+                    { cron: '0 9 * * 1-5', desc: 'Weekdays at 9am' },
+                    { cron: '*/15 * * * *', desc: 'Every 15 minutes' },
+                    { cron: '0 0 1 * *', desc: '1st of month' },
+                  ].map((ex, i) => (
+                    <div key={i} className="example-item" onClick={() => setCronInput(ex.cron)}>
+                      <code>{ex.cron}</code>
+                      <span>{ex.desc}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -2214,6 +2600,199 @@ export default function ToolsPage() {
         @media (max-width: 768px) {
           .stats-grid {
             grid-template-columns: repeat(2, 1fr);
+          }
+          .diff-inputs {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        /* Diff Viewer */
+        .diff-inputs {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+          margin-bottom: 20px;
+        }
+
+        .diff-inputs textarea {
+          width: 100%;
+          min-height: 150px;
+          padding: 12px;
+          background: rgba(255,255,255,0.03);
+          border: 1px solid var(--glass-border);
+          border-radius: 12px;
+          color: var(--text);
+          font-family: 'Fira Code', monospace;
+          font-size: 13px;
+        }
+
+        .diff-result {
+          margin-top: 20px;
+          border: 1px solid var(--glass-border);
+          border-radius: 12px;
+          overflow: hidden;
+        }
+
+        .diff-line {
+          display: grid;
+          grid-template-columns: 40px 1fr 1fr;
+          font-family: 'Fira Code', monospace;
+          font-size: 12px;
+        }
+
+        .line-num {
+          padding: 8px;
+          background: rgba(0,0,0,0.2);
+          text-align: center;
+          color: var(--text-muted);
+        }
+
+        .line-content {
+          padding: 8px 12px;
+          border-left: 1px solid var(--glass-border);
+        }
+
+        .diff-line.same { background: transparent; }
+        .diff-line.added .right { background: rgba(76,175,80,0.2); }
+        .diff-line.removed .left { background: rgba(244,67,54,0.2); }
+        .diff-line.changed .left { background: rgba(244,67,54,0.15); }
+        .diff-line.changed .right { background: rgba(76,175,80,0.15); }
+
+        /* Number Base Converter */
+        .base-results {
+          margin-top: 20px;
+        }
+
+        .base-row {
+          display: flex;
+          align-items: center;
+          gap: 15px;
+          padding: 12px;
+          background: rgba(255,255,255,0.03);
+          border-radius: 10px;
+          margin-bottom: 10px;
+        }
+
+        .base-label {
+          background: var(--primary);
+          padding: 4px 12px;
+          border-radius: 6px;
+          font-weight: 600;
+          font-size: 12px;
+          min-width: 70px;
+          text-align: center;
+        }
+
+        .base-value {
+          flex: 1;
+          font-family: 'Fira Code', monospace;
+          font-size: 14px;
+          word-break: break-all;
+        }
+
+        .base-row button {
+          background: var(--glass-bg);
+          border: 1px solid var(--glass-border);
+          color: var(--text);
+          padding: 8px 12px;
+          border-radius: 8px;
+          cursor: pointer;
+        }
+
+        .base-row button:hover {
+          background: var(--primary);
+          border-color: var(--primary);
+        }
+
+        /* UUID Generator */
+        .uuid-results {
+          margin-top: 20px;
+        }
+
+        .uuid-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 10px 15px;
+          background: rgba(255,255,255,0.03);
+          border-radius: 8px;
+          margin-bottom: 8px;
+          font-family: 'Fira Code', monospace;
+          font-size: 13px;
+        }
+
+        .uuid-row button {
+          background: transparent;
+          border: 1px solid var(--glass-border);
+          color: var(--text);
+          padding: 6px 10px;
+          border-radius: 6px;
+          cursor: pointer;
+        }
+
+        .uuid-row button:hover {
+          background: var(--primary);
+          border-color: var(--primary);
+        }
+
+        /* Cron Parser */
+        .cron-result {
+          background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(0,230,118,0.2));
+          border: 1px solid var(--primary);
+          border-radius: 12px;
+          padding: 20px;
+          margin: 20px 0;
+          display: flex;
+          align-items: center;
+          gap: 15px;
+          font-size: 16px;
+        }
+
+        .cron-result i {
+          font-size: 24px;
+          color: var(--primary-light);
+        }
+
+        .cron-examples {
+          margin-top: 25px;
+        }
+
+        .example-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 10px;
+          margin-top: 15px;
+        }
+
+        .example-item {
+          background: rgba(255,255,255,0.03);
+          border: 1px solid var(--glass-border);
+          border-radius: 10px;
+          padding: 12px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .example-item:hover {
+          border-color: var(--primary);
+          background: rgba(99,102,241,0.1);
+        }
+
+        .example-item code {
+          display: block;
+          font-family: 'Fira Code', monospace;
+          color: var(--primary-light);
+          margin-bottom: 5px;
+        }
+
+        .example-item span {
+          font-size: 12px;
+          color: var(--text-muted);
+        }
+
+        @media (max-width: 768px) {
+          .example-grid {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>
