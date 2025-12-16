@@ -50,6 +50,14 @@ const IMAGE_TOOLS = {
     color: '#ff5722',
     category: 'effects'
   },
+  // CREATE
+  collage: {
+    name: 'Collage Maker',
+    desc: 'Combine multiple images in grid',
+    icon: 'fa-th-large',
+    color: '#673ab7',
+    category: 'create'
+  },
   // CONVERT
   convert: {
     name: 'Convert Format',
@@ -63,6 +71,13 @@ const IMAGE_TOOLS = {
     desc: 'Convert HTML/text to image',
     icon: 'fa-code',
     color: '#00bcd4',
+    category: 'convert'
+  },
+  base64: {
+    name: 'Image to Base64',
+    desc: 'Convert image to Base64 string',
+    icon: 'fa-file-code',
+    color: '#607d8b',
     category: 'convert'
   },
   // SECURITY
@@ -126,6 +141,14 @@ export default function ImageConverterPage() {
   const [htmlWidth, setHtmlWidth] = useState(800);
   const [htmlHeight, setHtmlHeight] = useState(600);
   const [htmlBgColor, setHtmlBgColor] = useState('#ffffff');
+  
+  // Collage options
+  const [collageColumns, setCollageColumns] = useState(2);
+  const [collageGap, setCollageGap] = useState(10);
+  const [collageBgColor, setCollageBgColor] = useState('#ffffff');
+  
+  // Base64 output
+  const [base64Output, setBase64Output] = useState('');
   
   const fileInputRef = useRef(null);
 
@@ -499,10 +522,98 @@ export default function ImageConverterPage() {
     setIsLoading(false);
   };
 
+  // Create collage from multiple images
+  const processCollage = async () => {
+    if (previews.length < 2) {
+      showToast('Upload at least 2 images for collage', 'error');
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      const images = await Promise.all(
+        previews.map(p => {
+          return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.src = p.dataUrl;
+          });
+        })
+      );
+      
+      const cols = collageColumns;
+      const rows = Math.ceil(images.length / cols);
+      const maxWidth = Math.max(...images.map(i => i.width));
+      const maxHeight = Math.max(...images.map(i => i.height));
+      const cellWidth = maxWidth;
+      const cellHeight = maxHeight;
+      
+      const canvas = document.createElement('canvas');
+      canvas.width = cols * cellWidth + (cols + 1) * collageGap;
+      canvas.height = rows * cellHeight + (rows + 1) * collageGap;
+      
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = collageBgColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      images.forEach((img, i) => {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const x = collageGap + col * (cellWidth + collageGap);
+        const y = collageGap + row * (cellHeight + collageGap);
+        
+        // Center image in cell
+        const scale = Math.min(cellWidth / img.width, cellHeight / img.height);
+        const drawWidth = img.width * scale;
+        const drawHeight = img.height * scale;
+        const offsetX = (cellWidth - drawWidth) / 2;
+        const offsetY = (cellHeight - drawHeight) / 2;
+        
+        ctx.drawImage(img, x + offsetX, y + offsetY, drawWidth, drawHeight);
+      });
+      
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 0.92));
+      
+      setResults([{
+        blob,
+        name: 'collage.png',
+        originalName: `${images.length} images`,
+        originalSize: previews.reduce((sum, p) => sum + p.size, 0),
+        newSize: blob.size,
+        dataUrl: canvas.toDataURL('image/png'),
+        width: canvas.width,
+        height: canvas.height
+      }]);
+      
+      showToast('Collage created successfully!');
+    } catch (error) {
+      console.error('Error creating collage:', error);
+      showToast('Failed to create collage', 'error');
+    }
+    
+    setIsLoading(false);
+  };
+
+  // Convert image to Base64
+  const processBase64 = () => {
+    if (previews.length === 0) return;
+    
+    const dataUrl = previews[0].dataUrl;
+    setBase64Output(dataUrl);
+    showToast('Base64 generated! Click copy to use.');
+  };
+
+  const copyBase64 = () => {
+    navigator.clipboard.writeText(base64Output);
+    showToast('Base64 copied to clipboard!');
+  };
+
   const resetTool = () => {
     setFiles([]);
     setPreviews([]);
     setResults([]);
+    setBase64Output('');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -516,6 +627,7 @@ export default function ImageConverterPage() {
     optimize: { name: 'OPTIMIZE', color: '#e74c3c' },
     modify: { name: 'MODIFY', color: '#3498db' },
     effects: { name: 'EFFECTS', color: '#e91e63' },
+    create: { name: 'CREATE', color: '#673ab7' },
     convert: { name: 'CONVERT', color: '#2ecc71' },
     security: { name: 'SECURITY', color: '#34495e' }
   };
@@ -542,6 +654,7 @@ export default function ImageConverterPage() {
           <Link href="/pdf-tools"><i className="fas fa-file-pdf"></i> PDF Tools</Link>
           <Link href="/image-converter" className="active"><i className="fas fa-images"></i> Image</Link>
           <Link href="/batch-converter"><i className="fas fa-layer-group"></i> Batch</Link>
+          <Link href="/tools"><i className="fas fa-tools"></i> Tools</Link>
         </nav>
       </header>
 
@@ -684,8 +797,107 @@ export default function ImageConverterPage() {
               </div>
             )}
 
-            {/* Preview + Options */}
-            {previews.length > 0 && !isLoading && results.length === 0 && (
+            {/* Collage Maker - Special UI */}
+            {selectedTool === 'collage' && previews.length > 0 && !isLoading && results.length === 0 && (
+              <div className="file-card show">
+                <div className="file-card-header">
+                  <div className="file-name">
+                    <div className="file-icon" style={{ background: IMAGE_TOOLS[selectedTool].color }}>
+                      <i className="fas fa-th-large"></i>
+                    </div>
+                    <div>
+                      <h3>{previews.length} Images Selected</h3>
+                      <p>Arrange images in a grid collage</p>
+                    </div>
+                  </div>
+                  <button className="upload-btn" onClick={resetTool}>
+                    <i className="fas fa-redo"></i> Reset
+                  </button>
+                </div>
+
+                <div className="preview-grid">
+                  {previews.slice(0, 6).map((p, i) => (
+                    <img key={i} src={p.dataUrl} alt={p.name} className="mini-preview" />
+                  ))}
+                  {previews.length > 6 && <div className="more-count">+{previews.length - 6}</div>}
+                </div>
+
+                <div className="tool-options">
+                  <div className="input-row">
+                    <div className="input-group">
+                      <label>Columns: {collageColumns}</label>
+                      <input type="range" min="2" max="6" value={collageColumns}
+                        onChange={(e) => setCollageColumns(parseInt(e.target.value))} className="slider" />
+                    </div>
+                    <div className="input-group">
+                      <label>Gap (px)</label>
+                      <input type="number" value={collageGap} onChange={(e) => setCollageGap(parseInt(e.target.value) || 0)} />
+                    </div>
+                    <div className="input-group">
+                      <label>Background</label>
+                      <input type="color" value={collageBgColor} onChange={(e) => setCollageBgColor(e.target.value)} 
+                        style={{ width: '100%', height: '42px', cursor: 'pointer' }} />
+                    </div>
+                  </div>
+                </div>
+
+                <button className="convert-btn" onClick={processCollage}
+                  style={{ background: `linear-gradient(135deg, ${IMAGE_TOOLS[selectedTool].color}, var(--secondary))` }}>
+                  <i className="fas fa-th-large"></i>
+                  Create Collage
+                </button>
+              </div>
+            )}
+
+            {/* Base64 - Special UI */}
+            {selectedTool === 'base64' && previews.length > 0 && !isLoading && (
+              <div className="file-card show">
+                <div className="file-card-header">
+                  <div className="file-name">
+                    <div className="file-icon" style={{ background: IMAGE_TOOLS[selectedTool].color }}>
+                      <i className="fas fa-file-code"></i>
+                    </div>
+                    <div>
+                      <h3>Image to Base64</h3>
+                      <p>{previews[0]?.name}</p>
+                    </div>
+                  </div>
+                  <button className="upload-btn" onClick={resetTool}>
+                    <i className="fas fa-redo"></i> Reset
+                  </button>
+                </div>
+
+                <div className="preview-container">
+                  <img src={previews[0]?.dataUrl} alt="Preview" className="preview-image" />
+                </div>
+
+                {!base64Output && (
+                  <button className="convert-btn" onClick={processBase64}
+                    style={{ background: `linear-gradient(135deg, ${IMAGE_TOOLS[selectedTool].color}, var(--secondary))` }}>
+                    <i className="fas fa-file-code"></i>
+                    Generate Base64
+                  </button>
+                )}
+
+                {base64Output && (
+                  <div className="base64-output">
+                    <textarea value={base64Output} readOnly rows={6} style={{
+                      width: '100%', padding: '12px', background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid var(--glass-border)', borderRadius: '8px',
+                      color: 'var(--text)', fontFamily: 'monospace', fontSize: '11px'
+                    }} />
+                    <button className="convert-btn" onClick={copyBase64}
+                      style={{ background: `linear-gradient(135deg, ${IMAGE_TOOLS[selectedTool].color}, var(--secondary))`, marginTop: '15px' }}>
+                      <i className="fas fa-copy"></i>
+                      Copy Base64
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Preview + Options - for non-special tools */}
+            {previews.length > 0 && !isLoading && results.length === 0 && !['collage', 'base64'].includes(selectedTool) && (
               <div className="file-card show">
                 <div className="file-card-header">
                   <div className="file-name">
@@ -1235,6 +1447,39 @@ export default function ImageConverterPage() {
         
         .nav-links a.active {
           color: var(--primary-light);
+        }
+        
+        .preview-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 10px;
+          margin: 20px 0;
+        }
+        
+        .mini-preview {
+          width: 100%;
+          height: 80px;
+          object-fit: cover;
+          border-radius: 8px;
+          border: 1px solid var(--glass-border);
+        }
+        
+        .more-count {
+          width: 100%;
+          height: 80px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--glass-bg);
+          border: 1px solid var(--glass-border);
+          border-radius: 8px;
+          font-size: 18px;
+          font-weight: 600;
+          color: var(--text-muted);
+        }
+        
+        .base64-output {
+          margin-top: 20px;
         }
       `}</style>
     </>

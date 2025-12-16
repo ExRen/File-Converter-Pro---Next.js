@@ -150,6 +150,7 @@ export default function Home() {
           <Link href="/pdf-tools"><i className="fas fa-file-pdf"></i> PDF Tools</Link>
           <Link href="/image-converter"><i className="fas fa-images"></i> Image</Link>
           <Link href="/batch-converter"><i className="fas fa-layer-group"></i> Batch</Link>
+          <Link href="/tools"><i className="fas fa-tools"></i> Tools</Link>
         </nav>
       </header>
 

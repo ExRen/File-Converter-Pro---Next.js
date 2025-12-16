@@ -9,18 +9,19 @@
         "lint": "next lint"
     },
     "dependencies": {
+        "docx": "^8.5.0",
+        "fast-xml-parser": "^4.3.2",
+        "ini": "^4.1.1",
+        "js-yaml": "^4.1.0",
+        "jspdf": "^2.5.1",
+        "mammoth": "^1.6.0",
         "next": "14.0.4",
+        "papaparse": "^5.4.1",
+        "pdf-lib": "^1.17.1",
+        "qrcode": "^1.5.4",
         "react": "^18",
         "react-dom": "^18",
-        "papaparse": "^5.4.1",
-        "xlsx": "^0.18.5",
-        "fast-xml-parser": "^4.3.2",
-        "pdf-lib": "^1.17.1",
-        "mammoth": "^1.6.0",
-        "docx": "^8.5.0",
-        "js-yaml": "^4.1.0",
-        "ini": "^4.1.1",
-        "jspdf": "^2.5.1"
+        "xlsx": "^0.18.5"
     },
     "devDependencies": {
         "eslint": "^8",
