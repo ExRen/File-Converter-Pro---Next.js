@@ -14,6 +14,7 @@ import {
   pdfToImages,
   addWatermark,
   addPageNumbers,
+  COMPRESSION_LEVELS,
   getPDFInfo 
 } from '@/lib/pdfTools';
 
@@ -24,6 +25,7 @@ export default function PDFToolsPage() {
   const [result, setResult] = useState(null);
   const [toast, setToast] = useState(null);
   const [pdfInfo, setPdfInfo] = useState(null);
+  const [compressionStatus, setCompressionStatus] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   
   // Tool-specific options
@@ -31,6 +33,7 @@ export default function PDFToolsPage() {
   const [watermarkText, setWatermarkText] = useState('CONFIDENTIAL');
   const [pageNumberPosition, setPageNumberPosition] = useState('bottom-center');
   const [extractPageNumbers, setExtractPageNumbers] = useState('');
+  const [compressionLevel, setCompressionLevel] = useState('medium');
   
   const fileInputRef = useRef(null);
 
@@ -90,15 +93,20 @@ export default function PDFToolsPage() {
           break;
           
         case 'compress':
-          const compressed = await compressPDF(files[0]);
+          setCompressionStatus('Starting...');
+          const compressed = await compressPDF(files[0], compressionLevel, (status) => {
+            setCompressionStatus(status);
+          });
           setResult({
             type: 'compress',
             blob: compressed.blob,
             originalSize: compressed.originalSize,
             newSize: compressed.newSize,
-            reduction: compressed.reduction
+            reduction: compressed.reduction,
+            level: compressionLevel
           });
-          showToast(`PDF berhasil dikompres! Pengurangan ${compressed.reduction}%`);
+          setCompressionStatus('');
+          showToast(`PDF berhasil dikompres (${compressionLevel})! Pengurangan ${compressed.reduction}%`);
           break;
           
         case 'rotate':
@@ -168,11 +176,17 @@ export default function PDFToolsPage() {
   const downloadAllAsZip = async () => {
     if (!result || !result.items) return;
     
+    showToast('Memulai download beruntun...', 'info');
+    
     // Download individually for now (would need JSZip for zip)
-    for (const item of result.items) {
+    for (let i = 0; i < result.items.length; i++) {
+      const item = result.items[i];
       downloadBlob(item.blob, item.name);
-      await new Promise(r => setTimeout(r, 500));
+      // Small delay to prevent browser download blocking
+      await new Promise(r => setTimeout(r, 600));
     }
+    
+    showToast('Semua file telah diunduh!');
   };
 
   const resetTool = () => {
@@ -377,6 +391,24 @@ export default function PDFToolsPage() {
                   </div>
                 )}
 
+                {selectedTool === 'compress' && (
+                  <div className="tool-options">
+                    <h4>Tingkat Kompresi</h4>
+                    <div className="compression-levels">
+                      {Object.entries(COMPRESSION_LEVELS).map(([key, info]) => (
+                        <div 
+                          key={key}
+                          className={`level-card ${compressionLevel === key ? 'selected' : ''}`}
+                          onClick={() => setCompressionLevel(key)}
+                        >
+                          <div className="level-name">{info.name}</div>
+                          <div className="level-desc">{info.desc}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <button 
                   className="convert-btn" 
                   onClick={processFiles}
@@ -386,7 +418,7 @@ export default function PDFToolsPage() {
                   {isLoading ? (
                     <>
                       <div className="spinner-small"></div>
-                      Processing...
+                      {compressionStatus || 'Processing...'}
                     </>
                   ) : (
                     <>
@@ -700,6 +732,51 @@ export default function PDFToolsPage() {
         
         .nav-links a.active {
           color: var(--primary-light);
+        }
+
+        .compression-levels {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 12px;
+          margin-top: 10px;
+        }
+
+        .level-card {
+          background: var(--glass-bg);
+          border: 1px solid var(--glass-border);
+          border-radius: 12px;
+          padding: 15px 10px;
+          text-align: center;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .level-card:hover {
+          border-color: var(--primary);
+          background: rgba(255, 255, 255, 0.05);
+        }
+
+        .level-card.selected {
+          border-color: var(--primary);
+          background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1));
+          box-shadow: 0 0 15px rgba(99, 102, 241, 0.2);
+        }
+
+        .level-name {
+          font-weight: 600;
+          font-size: 13px;
+          margin-bottom: 4px;
+        }
+
+        .level-desc {
+          font-size: 10px;
+          color: var(--text-muted);
+        }
+
+        @media (max-width: 640px) {
+          .compression-levels {
+            grid-template-columns: 1fr;
+          }
         }
       `}</style>
     </>
